@@ -46,6 +46,12 @@ X, y = make_dataset(f'{dataset}.sdf', data_dir=env_var, features=features, name_
                     threshold=threshold)
 X_train, y_train_class, X_test, y_test_class = split_train_test(X, y, n_splits, test_set_size, seed, None)
 
+if len(pd.unique(X.values.ravel('K')) > 2:
+       CLASSIFIER_ALGORITHMS.pop(4)
+
+else:
+       CLASSIFIER_ALGORITHMS.pop(1)
+
 cv = model_selection.StratifiedKFold(shuffle=True, n_splits=n_splits, random_state=seed)
 
 for name, clf, params in CLASSIFIER_ALGORITHMS:
@@ -57,11 +63,18 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
     print(f'=======Results for {name}=======')
 
     # get the predictions from the best performing model in 5 fold cv
-    cv_predictions = cross_val_predict(best_estimator, X_train, y_train_class, cv=cv)
-    five_fold_stats = get_class_stats(None, y_train_class, cv_predictions)
+    cv_predictions = pd.DataFrame(
+      cross_val_predict(best_estimator, X_train, y_train_class, cv=cv, method='predict_proba'), 
+      index=y_train_class.index)
+    cv_class = cv_predictions[1].copy()
+    cv_class[cv_class >= 0.5] = 1
+    cv_class[cv_class < 0.5] = 0
+    five_fold_stats = get_class_stats(None, y_train_class, cv_class)
 
     # record the predictions and the results
-    pd.Series(cv_predictions, index=y_train_class.index).to_csv(os.path.join(
+    final_cv_predictions = pd.concat([cv_predictions[1], cv_class], axis=1)
+    final_cv_predictions.columns = ['Probability', 'Binary Prediction']
+    final_cv_predictions.to_csv(os.path.join(
         data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_predictions.csv'))
 
     # print the 5-fold cv accuracy and manually calculated accuracy to ensure they're correct
@@ -76,20 +89,24 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
         data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_results.csv'))
 
     # make predictions on training data, then test data
-    train_predictions = best_estimator.predict(X_train.values)
+    train_predictions = pd.Series(best_estimator.predict(X_train.values), index=y_train_class.index)
+    train_probabilities = pd.Series(best_estimator.predict_proba(X_train.values), index=y_train_class.index)
 
     if test_set_size != 0:
-        test_predictions = best_estimator.predict(X_test.values)
+        test_predictions = pd.Series(best_estimator.predict(X_test.values), index=y_test_class.index)
+        test_probabilities = pd.Series(best_estimator.predict_proba(X_test.values), index=y_test_class.index)
 
     else:
         test_predictions = None
 
-    # write it all to for later
-    pd.Series(train_predictions, index=y_train_class.index).to_csv(os.path.join(
+    # write it all to files for later
+    final_train_predictions = pd.concat([train_probabilities, train_predictions], axis=1)
+    final_train_predictions.to_csv(os.path.join(
         data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_predictions.csv'))
 
     if test_predictions is not None:
-        pd.Series(test_predictions, index=y_test_class.index).to_csv(os.path.join(
+        final_test_predictions = pd.concat([test_probabilities, test_predictions], axis=1)
+        final_test_predictions.to_csv(os.path.join(
             data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_test_predictions.csv'))
 
     print('Training data prediction results: ')
