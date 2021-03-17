@@ -12,8 +12,10 @@ def get_class_stats(model, X, y):
     :return: 
     """
     if not model:
-        predicted_classes = y
         predicted_probas = y
+        predicted_classes = y.copy()
+        predicted_classes[predicted_classes >= 0.5] = 1
+        predicted_classes[predicted_classes < 0.5] = 0
         y = X
     else:
         if 'predict_classes' in dir(model):
