@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description='Build QSAR Models')
 parser.add_argument('-ds', '--dataset', metavar='ds', type=str, help='training set name')
 parser.add_argument('-f', '--features', metavar='f', type=str, help='features to build model with')
 parser.add_argument('-ns', '--n_splits', metavar='ns', type=int, help='number of splits for cross validation')
-parser.add_argument('-dd', '--data_dir', metavar='dd', type=str, help='environmental variable of project directory')
+parser.add_argument('-ev', '--env_var', metavar='ev', type=str, help='environmental variable of project directory')
 parser.add_argument('-nc', '--name_col', metavar='nc', type=str, help='name of name column in sdf file')
 parser.add_argument('-ep', '--endpoint', metavar='ep', type=str, help='end point to model')
 parser.add_argument('-t', '--threshold', metavar='t', type=int, help='threshold cutoff')
@@ -30,7 +30,7 @@ dataset = args.dataset
 features = args.features
 n_splits = args.n_splits
 seed = 0
-env_var = args.data_dir
+env_var = args.env_var
 data_dir = os.getenv(env_var)
 name_col = args.name_col
 endpoint = args.endpoint
@@ -46,30 +46,30 @@ X, y = make_dataset(f'{dataset}.sdf', data_dir=env_var, features=features, name_
                     threshold=threshold)
 X_train, y_train_class, X_test, y_test_class = split_train_test(X, y, n_splits, test_set_size, seed, None)
 
-if len(pd.unique(X.values.ravel('K')) > 2:
-       CLASSIFIER_ALGORITHMS.pop(4)
+if len(pd.unique(X.values.ravel('K'))) > 2:
+    CLASSIFIER_ALGORITHMS.pop(4)
 
 else:
-       CLASSIFIER_ALGORITHMS.pop(1)
+    CLASSIFIER_ALGORITHMS.pop(1)
 
 cv = model_selection.StratifiedKFold(shuffle=True, n_splits=n_splits, random_state=seed)
 
 for name, clf, params in CLASSIFIER_ALGORITHMS:
     pipe = pipeline.Pipeline([('scaler', StandardScaler()), (name, clf)])
-    grid_search = model_selection.GridSearchCV(pipe, param_grid=params, cv=cv, scoring=class_scoring, refit='ACC')
+    grid_search = model_selection.GridSearchCV(pipe, param_grid=params, cv=cv, scoring=class_scoring, refit='AUC')
     grid_search.fit(X_train, y_train_class)
     best_estimator = grid_search.best_estimator_
 
-    print(f'=======Results for {name}=======')
+    print(f'\n=======Results for {name}=======')
 
     # get the predictions from the best performing model in 5 fold cv
     cv_predictions = pd.DataFrame(
-      cross_val_predict(best_estimator, X_train, y_train_class, cv=cv, method='predict_proba'), 
-      index=y_train_class.index)
+        cross_val_predict(best_estimator, X_train, y_train_class, cv=cv, method='predict_proba'),
+        index=y_train_class.index)
     cv_class = cv_predictions[1].copy()
     cv_class[cv_class >= 0.5] = 1
     cv_class[cv_class < 0.5] = 0
-    five_fold_stats = get_class_stats(None, y_train_class, cv_class)
+    five_fold_stats = get_class_stats(None, y_train_class, cv_predictions[1])
 
     # record the predictions and the results
     final_cv_predictions = pd.concat([cv_predictions[1], cv_class], axis=1)
@@ -78,46 +78,40 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
         data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_predictions.csv'))
 
     # print the 5-fold cv accuracy and manually calculated accuracy to ensure they're correct
-    print(f'Best 5-fold cv ACC: {grid_search.best_score_}')
-    print('All 5-fold results:')
+    print(f'\n{n_splits}-fold cross-validation results:')
 
     for score, val in five_fold_stats.items():
         print(score, val)
 
     # write 5-fold cv results to csv
     pd.Series(five_fold_stats).to_csv(os.path.join(
-        data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_results.csv'))
+        data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_results.csv'),
+        header=False)
 
     # make predictions on training data, then test data
     train_predictions = pd.Series(best_estimator.predict(X_train.values), index=y_train_class.index)
-    train_probabilities = pd.Series(best_estimator.predict_proba(X_train.values), index=y_train_class.index)
+    train_probabilities = pd.Series(best_estimator.predict_proba(X_train.values)[:, 1], index=y_train_class.index)
 
-    if test_set_size != 0:
-        test_predictions = pd.Series(best_estimator.predict(X_test.values), index=y_test_class.index)
-        test_probabilities = pd.Series(best_estimator.predict_proba(X_test.values), index=y_test_class.index)
-
-    else:
-        test_predictions = None
-
-    # write it all to files for later
-    final_train_predictions = pd.concat([train_probabilities, train_predictions], axis=1)
-    final_train_predictions.to_csv(os.path.join(
-        data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_predictions.csv'))
-
-    if test_predictions is not None:
-        final_test_predictions = pd.concat([test_probabilities, test_predictions], axis=1)
-        final_test_predictions.to_csv(os.path.join(
-            data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_test_predictions.csv'))
-
-    print('Training data prediction results: ')
+    print('\nTraining data results:')
 
     train_stats = get_class_stats(best_estimator, X_train, y_train_class)
 
     for score, val in train_stats.items():
         print(score, val)  # write training predictions and stats also
 
-    if test_predictions is not None:
-        print('Test data results')
+    # write it all to files for later
+    final_train_predictions = pd.concat([train_probabilities, train_predictions], axis=1)
+    final_train_predictions.to_csv(os.path.join(
+        data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_predictions.csv'))
+
+    if test_set_size != 0:
+        test_predictions = pd.Series(best_estimator.predict(X_test.values), index=y_test_class.index)
+        test_probabilities = pd.Series(best_estimator.predict_proba(X_test.values)[:, 1], index=y_test_class.index)
+        final_test_predictions = pd.concat([test_probabilities, test_predictions], axis=1)
+        final_test_predictions.to_csv(os.path.join(
+            data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_test_predictions.csv'))
+
+        print('\nTest data results:')
 
         test_stats = get_class_stats(best_estimator, X_test, y_test_class)
 
@@ -125,6 +119,7 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
             print(score, val)
 
     else:
+        test_predictions = None
         test_stats = {}
 
         for score, val in train_stats.items():
@@ -134,5 +129,5 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
         os.path.join(data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_test_results.csv'))
 
     # save model
-    save_dir = os.path.join(data_dir, 'ML_models', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_pipeline.pkl')
+    save_dir = os.path.join(data_dir, 'models', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_pipeline.pkl')
     joblib.dump(best_estimator, save_dir)
