@@ -18,7 +18,7 @@ def generate_molecules(dataset_name, data_dir=None, endpoint=None):
     Returns prediction sets without molecules that could not be created from SMILES strings
 
     :param dataset_name: String representing dataset name in .sdf file
-    :param data_dir: Environment variable pointing to the project directory containing the dataset
+    :param data_dir: The project directory containing the dataset
     :param endpoint: Desired binary or continuous endpoint with threshold to be modeled (for training sets and external
     validation sets, defaults to None); Enter None for prediction sets
 
@@ -106,7 +106,7 @@ def calc_ecfp6(molecules, name_col='CASRN'):
     data = []
 
     for mol in molecules:
-        ecfp6 = [int(x) for x in AllChem.GetMorganFingerprintAsBitVect(mol, 3, 1024)]
+        ecfp6 = [float(x) for x in AllChem.GetMorganFingerprintAsBitVect(mol, 3, 1024)]
         data.append(ecfp6)
 
     return pd.DataFrame(data, index=[mol.GetProp(name_col) if mol.HasProp(name_col) else '' for mol in molecules])
@@ -128,7 +128,7 @@ def calc_fcfp6(molecules, name_col='CASRN'):
     data = []
 
     for mol in molecules:
-        fcfp6 = [int(x) for x in AllChem.GetMorganFingerprintAsBitVect(mol, 3, 1024, useFeatures=True)]
+        fcfp6 = [float(x) for x in AllChem.GetMorganFingerprintAsBitVect(mol, 3, 1024, useFeatures=True)]
         data.append(fcfp6)
 
     return pd.DataFrame(data, index=[mol.GetProp(name_col) if mol.HasProp(name_col) else '' for mol in molecules])
@@ -150,7 +150,7 @@ def calc_maccs(molecules, name_col='CASRN'):
     data = []
 
     for mol in molecules:
-        maccs = [int(x) for x in MACCSkeys.GenMACCSKeys(mol)]
+        maccs = [float(x) for x in MACCSkeys.GenMACCSKeys(mol)]
         data.append(maccs)
 
     return pd.DataFrame(data, index=[mol.GetProp(name_col) if mol.HasProp(name_col) else '' for mol in molecules])
@@ -257,12 +257,12 @@ def load_external_desc(dataset_name, features, data_dir=None, pred_set=False, tr
 
 
 def get_classes(molecules, name_col='CASRN', class_col='Class'):
-    return pd.Series([int(mol.GetProp(class_col)) for mol in molecules], index=[mol.GetProp(name_col) if mol.HasProp(
+    return pd.Series([float(mol.GetProp(class_col)) for mol in molecules], index=[mol.GetProp(name_col) if mol.HasProp(
         name_col) else '' for mol in molecules])
 
 
 def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name_col='CASRN', endpoint=None,
-                 threshold=None):
+                 threshold=None, cache=True):
     """
     :param sdf_file: Name of the .sdf file from which to make a dataset
     :param data_dir: Environmental variable pointing to the project directory
@@ -318,7 +318,9 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
             X = X.loc[y.index]
             df = X.copy()
             df['Class'] = y
-            df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}_{threshold}.csv'))
+
+            if cache:
+                df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}_{threshold}.csv'))
 
             return X, y
 
@@ -335,7 +337,9 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
             X = X.loc[y.index]
             df = X.copy()
             df['Class'] = y
-            df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}.csv'))
+
+            if cache:
+                df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}.csv'))
 
             return X, y
 
@@ -348,7 +352,9 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
             molecules = generate_molecules(dataset_name, data_dir, endpoint=None)
             X = descriptor_fxs[features](molecules)
             df = X.copy()
-            df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_prediction_set.csv'))
+
+            if cache:
+                df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_prediction_set.csv'))
 
             return X
 
@@ -359,10 +365,11 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
         df = X.copy()
         df['Class'] = y
 
-        if threshold is not None:
-            df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}_{threshold}.csv'))
+        if cache:
+            if threshold is not None:
+                df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}_{threshold}.csv'))
 
-        else:
-            df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}.csv'))
+            else:
+                df.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}.csv'))
 
         return X, y
