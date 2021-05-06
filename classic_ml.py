@@ -29,9 +29,11 @@ def split_train_test(X, y, n_split, test_set_size, split_seed, major_subsample=N
     if test_set_size != 0:
         batch_size = int(y.shape[0] * (1 - test_set_size) // n_split)  # calculating batch size
         train_size = int(batch_size * n_split)
+        test_size = y.shape[0] - train_size
 
         X_train_tmp, X_test, y_train_class_tmp, y_test_class = model_selection.train_test_split(X, y,
                                                                                                 train_size=train_size,
+                                                                                                test_size=test_size,
                                                                                                 stratify=y,
                                                                                                 random_state=split_seed)
 
