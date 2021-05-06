@@ -1,18 +1,18 @@
 import argparse
 import os
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn import model_selection
 from sklearn import pipeline
-from sklearn.externals import joblib
 from sklearn.model_selection import cross_val_predict
 from sklearn.preprocessing import StandardScaler
 
 from classic_ml import split_train_test, CLASSIFIER_ALGORITHMS
 from config import directory_check
-from stats import get_class_stats, class_scoring
 from molecules_and_features import make_dataset
+from stats import get_class_stats, class_scoring
 
 parser = argparse.ArgumentParser(description='Build QSAR Models')
 parser.add_argument('-ds', '--dataset', metavar='ds', type=str, help='training set name')
@@ -20,7 +20,7 @@ parser.add_argument('-f', '--features', metavar='f', type=str, help='features to
 parser.add_argument('-ns', '--n_splits', metavar='ns', type=int, help='number of splits for cross validation')
 parser.add_argument('-ev', '--env_var', metavar='ev', type=str, help='environmental variable of project directory')
 parser.add_argument('-nc', '--name_col', metavar='nc', type=str, help='name of name column in sdf file')
-parser.add_argument('-ep', '--endpoint', metavar='ep', type=str, help='end point to model')
+parser.add_argument('-ep', '--endpoint', metavar='ep', type=str, help='endpoint to model')
 parser.add_argument('-t', '--threshold', metavar='t', type=int, help='threshold cutoff')
 parser.add_argument('-ts', '--test_set_size', metavar='ts', type=float, help='size of the test set')
 
