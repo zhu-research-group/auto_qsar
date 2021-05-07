@@ -2,7 +2,7 @@ import math
 import os
 
 import pandas as pd
-
+from numpy import inf
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
@@ -82,6 +82,9 @@ def calc_rdkit(molecules, name_col='CASRN'):
 
     # Imputes the data and replaces NaN values with mean from the column
     desc_matrix = X.fillna(X.mean())
+
+    # Removes descriptors with infinity values
+    desc_matrix = desc_matrix.loc[:, ~desc_matrix.isin([inf, -inf]).any(axis=0)]
 
     # Checks for appropriate output
     assert len(desc_matrix.columns) != 0, 'All features contained at least one null value. No descriptor matrix ' \
