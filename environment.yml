@@ -1,10 +1,11 @@
 name: auto_qsar
 channels:
-  - rdkit
   - conda-forge
   - defaults
 dependencies:
-  - pandas=0.24.2
-  - python=3.6.13
-  - rdkit=2020.09.1.0
-  - scikit-learn=0.19.0
+  - joblib=1.0.1
+  - pandas=1.2.4
+  - python=3.9.4
+  - rdkit=2021.03.1
+  - scikit-learn=0.24.1
+prefix: C:\Users\Heather\anaconda3\envs\auto_qsar
