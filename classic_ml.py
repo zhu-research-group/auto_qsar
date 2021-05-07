@@ -67,7 +67,7 @@ CLASSIFIER_ALGORITHMS = [
     ('nb', GaussianNB(), {}),
     ('knn', KNeighborsClassifier(metric='euclidean'), {'knn__n_neighbors': [1, 3, 5],
                                                        'knn__weights': ['uniform', 'distance']}),
-    ('svc', SVC(probability=True,
+    ('svm', SVC(probability=True,
                 class_weight='balanced',
                 random_state=seed), {'svc__kernel': ['rbf'],
                                      'svc__gamma': [1e-2, 1e-3],
