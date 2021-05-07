@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import pandas as pd
 
 from rdkit.Chem import SDWriter
-from sklearn.externals.joblib import load
+from joblib import load
 
 from molecules_and_features import generate_molecules, make_dataset
 
