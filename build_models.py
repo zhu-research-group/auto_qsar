@@ -60,7 +60,13 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
     grid_search.fit(X_train, y_train_class)
     best_estimator = grid_search.best_estimator_
 
-    print(f'\n=======Results for {name}=======')
+    if name in ['svc']:
+        use_name = 'svm'
+    
+    else:
+        use_name = name 
+
+    print(f'\n=======Results for {use_name}=======')
 
     # get the predictions from the best performing model in 5 fold cv
     cv_predictions = pd.DataFrame(
@@ -75,7 +81,7 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
     final_cv_predictions = pd.concat([cv_predictions[1], cv_class], axis=1)
     final_cv_predictions.columns = ['Probability', 'Binary Prediction']
     final_cv_predictions.to_csv(os.path.join(
-        data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_predictions.csv'))
+        data_dir, 'predictions', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_predictions.csv'))
 
     # print the 5-fold cv accuracy and manually calculated accuracy to ensure they're correct
     print(f'\n{n_splits}-fold cross-validation results:')
@@ -85,7 +91,7 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
 
     # write 5-fold cv results to csv
     pd.Series(five_fold_stats).to_csv(os.path.join(
-        data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_results.csv'),
+        data_dir, 'results', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_{n_splits}fcv_results.csv'),
         header=False)
 
     # make predictions on training data, then test data
@@ -102,14 +108,14 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
     # write it all to files for later
     final_train_predictions = pd.concat([train_probabilities, train_predictions], axis=1)
     final_train_predictions.to_csv(os.path.join(
-        data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_predictions.csv'))
+        data_dir, 'predictions', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_train_predictions.csv'))
 
-    if test_set_size != 0:
+    if test_set_size not in [0, None]:
         test_predictions = pd.Series(best_estimator.predict(X_test.values), index=y_test_class.index)
         test_probabilities = pd.Series(best_estimator.predict_proba(X_test.values)[:, 1], index=y_test_class.index)
         final_test_predictions = pd.concat([test_probabilities, test_predictions], axis=1)
         final_test_predictions.to_csv(os.path.join(
-            data_dir, 'predictions', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_test_predictions.csv'))
+            data_dir, 'predictions', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_test_predictions.csv'))
 
         print('\nTest data results:')
 
@@ -126,8 +132,8 @@ for name, clf, params in CLASSIFIER_ALGORITHMS:
             test_stats[score] = np.nan
 
     pd.DataFrame([train_stats, test_stats], index=['Training', 'Test']).to_csv(
-        os.path.join(data_dir, 'results', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_train_test_results.csv'))
+        os.path.join(data_dir, 'results', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_train_test_results.csv'))
 
     # save model
-    save_dir = os.path.join(data_dir, 'models', f'{name}_{dataset}_{features}_{endpoint}_{threshold}_pipeline.pkl')
+    save_dir = os.path.join(data_dir, 'models', f'{use_name}_{dataset}_{features}_{endpoint}_{threshold}_pipeline.pkl')
     joblib.dump(best_estimator, save_dir)
