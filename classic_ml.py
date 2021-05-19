@@ -26,7 +26,7 @@ def split_train_test(X, y, n_split, test_set_size, split_seed, major_subsample=N
         y.drop(y.index[major_class_index_remove], inplace=True)
 
     # split X into training sets and test set the size of test_set_
-    if test_set_size != 0:
+    if test_set_size not in [0, None]:
         batch_size = int(y.shape[0] * (1 - test_set_size) // n_split)  # calculating batch size
         train_size = int(batch_size * n_split)
         test_size = y.shape[0] - train_size
@@ -67,7 +67,7 @@ CLASSIFIER_ALGORITHMS = [
     ('nb', GaussianNB(), {}),
     ('knn', KNeighborsClassifier(metric='euclidean'), {'knn__n_neighbors': [1, 3, 5],
                                                        'knn__weights': ['uniform', 'distance']}),
-    ('svm', SVC(probability=True,
+    ('svc', SVC(probability=True,
                 class_weight='balanced',
                 random_state=seed), {'svc__kernel': ['rbf'],
                                      'svc__gamma': [1e-2, 1e-3],
