@@ -46,7 +46,7 @@ for alg in algorithms:
         loaded_model = load(model_file_path)
         probabilities = pd.Series(loaded_model.predict_proba(X_pred)[:, 1], index=X_pred.index)
         preds.append(probabilities)
-    
+
     else:
         raise Exception(f'Model {model_file_path} does not exist.')
 
@@ -60,7 +60,7 @@ if len(preds) > 1:
 else:
     final_preds = preds[0]
 
-molecules = generate_molecules(prediction_set, data_dir, endpoint)
+molecules = generate_molecules(prediction_set, data_dir)
 
 if len([mol for mol in molecules if mol.HasProp(endpoint)]) > 0:
     X, y = make_dataset(f'{prediction_set}.sdf', data_dir=env_var, features=features, name_col=name_col, endpoint=endpoint,
@@ -78,7 +78,7 @@ if len([mol for mol in molecules if mol.HasProp(endpoint)]) > 0:
 
 else:
     for molecule in molecules:
-        molecule.SetProp(endpoint, final_preds.loc[molecule.GetProp(name_col)])
+        molecule.SetProp(endpoint, str(final_preds.loc[molecule.GetProp(name_col)]))
 
 
 w = SDWriter(os.path.join(data_dir, f'{prediction_set}_with_predictions.sdf'))
