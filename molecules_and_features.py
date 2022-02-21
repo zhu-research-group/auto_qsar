@@ -250,6 +250,7 @@ def load_external_desc(dataset_name, features, data_dir=None, pred_set=False, tr
     df = X.copy()
     df.loc[:, df.isnull().all()] = -999
     df.fillna(X.mean(), inplace=True)
+    df = df.loc[:, ~df.isin([inf, -inf]).any(axis=0)]
 
     if pred_set:
         X_train, y_train = make_dataset('{}.sdf'.format(training_set), data_dir=os.getenv('NICEATM_ACUTE_ORAL_DATA'),
