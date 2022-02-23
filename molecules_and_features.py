@@ -333,6 +333,14 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
                 return pd.read_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_prediction_set.csv'),
                                    index_col=0)
 
+            else:
+                X = load_external_desc(dataset_name, features, data_dir)
+
+                if cache:
+                    X.to_csv(os.path.join(data_dir, 'caches', f'{dataset_name}_{features}_{endpoint}.csv'))
+
+                return X
+
         else:
             # changing the line of code here from get_act to get_classes 
             # because if im following the logic correctly anytime
