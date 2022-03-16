@@ -159,7 +159,7 @@ def calc_maccs(molecules, name_col='CASRN'):
     return pd.DataFrame(data, index=[mol.GetProp(name_col) if mol.HasProp(name_col) else '' for mol in molecules])
 
 
-def get_activities(molecules, name_col='CASRN', endpoint=None, threshold=None, regress=False):
+def get_activities(molecules, name_col='CASRN', endpoint=None, threshold=None):
     """
     Takes in a list of rdkit molecules and returns a vector with a value of 1 if the indexed molecule fits the desired
     binary endpoint and 0 if it does not
@@ -169,8 +169,6 @@ def get_activities(molecules, name_col='CASRN', endpoint=None, threshold=None, r
     :param endpoint: Desired property to be modeled (defaults to None). Needs to be a valid property of all molecules
     :param threshold: Toxicity threshold value for binary endpoints based on continuous data where values falling
     below the threshold will constitute an active response and vice versa(i.e. LD50 in mg/kg, defaults to None)
-    :param regress: True if continuous endpoint is to be modeled (e.g. LD50 in mg/kg), False otherwise (defaults to
-    False)
 
     :return y: Activity vector as pandas Series
     """
@@ -204,25 +202,15 @@ def get_activities(molecules, name_col='CASRN', endpoint=None, threshold=None, r
         return pd.Series(y, index=[mol.GetProp(name_col) for mol in molecules])
 
     # Populates the activity vector with a 1 for molecules with a continuous endpoint below the threshold and vice versa
-    elif not regress:
-        for mol in molecules:
-            continuous_value = float(mol.GetProp(endpoint))
-            if continuous_value < threshold:
-                y.append(1)
-            elif continuous_value >= threshold:
-                y.append(0)
-        return pd.Series(y, index=[mol.GetProp(name_col) for mol in molecules])
 
-    elif regress:
+    else:
         y_continuous = []
+        
         for mol in molecules:
             continuous_value = float(mol.GetProp(endpoint))
             y_continuous.append(math.log10(continuous_value))
+            
         return pd.Series(y_continuous, index=[mol.GetProp(name_col) for mol in molecules])
-
-    else:
-        raise Exception(
-            'Please enter a binary endpoint or continuous endpoint value (with or without a threshold value.')
 
 
 def load_external_desc(dataset_name, features, data_dir=None, pred_set=False, training_set=None, endpoint=None,
