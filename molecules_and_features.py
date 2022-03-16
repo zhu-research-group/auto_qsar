@@ -372,8 +372,14 @@ def make_dataset(sdf_file, data_dir=None, pred_set=False, features='MACCS', name
 
     else:
         molecules = generate_molecules(dataset_name, data_dir, endpoint=endpoint)
-        X, y = descriptor_fxs[features](molecules), get_classes(molecules, name_col, endpoint)
-
+        X = descriptor_fxs[features](molecules)
+        
+        if threshold is not None:
+            y = get_activities(molecules, name_col, endpoint, threshold)
+        
+        else:
+            y = get_classes(molecules, name_col, endpoint)
+        
         df = X.copy()
         df['Class'] = y
 
